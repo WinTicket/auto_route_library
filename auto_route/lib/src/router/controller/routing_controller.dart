@@ -1717,7 +1717,10 @@ abstract class StackRouter extends RoutingController {
     if (notify) {
       notifyAll();
     }
-    return data.popped;
+    // Use page.popped instead of data.popped so that replace() / removeWhere()
+    // flows complete correctly via Flutter's Route.popped lifecycle.
+    // See https://github.com/Milad-Akarie/auto_route_library/issues/2251
+    return page.popped;
   }
 
   Future<ResolverResult> _canNavigate(

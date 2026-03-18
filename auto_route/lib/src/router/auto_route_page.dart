@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -36,6 +38,17 @@ class AutoRoutePage<T> extends Page<T> {
 
   /// The widget passed to the route
   Widget get child => _child;
+
+  // Fix for https://github.com/Milad-Akarie/auto_route_library/issues/2251
+  // Holds a page-level completer so that replace() / removeWhere() flows
+  // correctly complete the Future returned by push().
+  final _popCompleter = Completer<T?>();
+
+  /// A Future that completes when this page is removed from the Navigator,
+  /// regardless of whether it was popped, replaced, or removed via removeWhere.
+  Future<T?> get popped => routeData.router.ignorePopCompleters
+      ? SynchronousFuture<T?>(null)
+      : _popCompleter.future;
 
   /// Default constructor
   AutoRoutePage({
@@ -124,7 +137,11 @@ class AutoRoutePage<T> extends Page<T> {
 
   @override
   Route<T> createRoute(BuildContext context) {
-    return onCreateRoute(context);
+    final route = onCreateRoute(context);
+    if (!routeData.router.ignorePopCompleters) {
+      route.popped.then((v) => _popCompleter.complete(v));
+    }
+    return route;
   }
 }
 
